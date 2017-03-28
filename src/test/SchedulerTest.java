@@ -11,6 +11,7 @@ import static java.lang.Thread.sleep;
 
 public class SchedulerTest
 {
+	// Время, которое мы даём ExecutorService на завершение своих дел
 	private static final int EXECUTOR_TERMINATION_TIMEOUT_SECONDS = 5;
 	private CopyOnWriteArrayList<Integer> taskLog;
 
