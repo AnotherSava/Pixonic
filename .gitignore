@@ -1,0 +1,5 @@
+# IDEA
+.idea/libraries/Maven__*
+
+# Maven
+#target/
