@@ -1,5 +1,5 @@
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -8,12 +8,38 @@ import java.util.Random;
 import java.util.concurrent.*;
 
 import static java.lang.Thread.sleep;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SchedulerTest
 {
 	// Время, которое мы даём ExecutorService на завершение своих дел
 	private static final int EXECUTOR_TERMINATION_TIMEOUT_SECONDS = 5;
 	private CopyOnWriteArrayList<Integer> taskLog;
+	private Scheduler scheduler;
+	private ExecutorService executorService;
+
+	/**
+	 * Начальная инициализация
+	 */
+	@BeforeEach
+	private void init() {
+		taskLog = new CopyOnWriteArrayList<>();
+		scheduler = new Scheduler();
+
+		executorService = Executors.newCachedThreadPool();
+		executorService.submit(scheduler);
+	}
+
+	/**
+	 * Проверка успешного завершения работы
+	 */
+	private void shutdown() throws InterruptedException {
+		scheduler.stop();
+		executorService.shutdown();
+		assertTrue(executorService.awaitTermination(EXECUTOR_TERMINATION_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+	}
 
 	/**
 	 * Тест порядка выполнения заранее отправленных заданий
@@ -21,12 +47,6 @@ public class SchedulerTest
 	@Test
 	public void testBasicSequence() throws InterruptedException
 	{
-		taskLog = new CopyOnWriteArrayList<>();
-		Scheduler scheduler = new Scheduler();
-
-		ExecutorService executorService = Executors.newCachedThreadPool();
-		executorService.submit(scheduler);
-
 		LocalDateTime time = LocalDateTime.now().plusSeconds(1);
 		scheduler.addTask(new SleepingTestTaskRecord(2000, 100, taskLog, 1));
 		scheduler.addTask(new SleepingTestTaskRecord(-1000, 100, taskLog, 2));
@@ -35,11 +55,9 @@ public class SchedulerTest
 
 		sleep(3000);
 
-		Assert.assertArrayEquals(new Integer[]{2, 3, 4, 1}, taskLog.toArray());
+		assertArrayEquals(new Integer[]{2, 3, 4, 1}, taskLog.toArray());
 
-		scheduler.stop();
-		executorService.shutdown();
-		Assert.assertTrue(executorService.awaitTermination(EXECUTOR_TERMINATION_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+		shutdown();
 	}
 
 	/**
@@ -48,12 +66,6 @@ public class SchedulerTest
 	@Test
 	public void testDelayedSequence() throws InterruptedException
 	{
-		taskLog = new CopyOnWriteArrayList<>();
-		Scheduler scheduler = new Scheduler();
-
-		ExecutorService executorService = Executors.newCachedThreadPool();
-		executorService.submit(scheduler);
-
 		LocalDateTime time = LocalDateTime.now().plusSeconds(3);
 
 		scheduler.addTask(new SleepingTestTaskRecord(500, 2000, taskLog, 1));
@@ -66,11 +78,9 @@ public class SchedulerTest
 
 		sleep(6000);
 
-		Assert.assertArrayEquals(new Integer[]{1, 2, 3, 4}, taskLog.toArray());
+		assertArrayEquals(new Integer[]{1, 2, 3, 4}, taskLog.toArray());
 
-		scheduler.stop();
-		executorService.shutdown();
-		Assert.assertTrue(executorService.awaitTermination(EXECUTOR_TERMINATION_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+		shutdown();
 	}
 
 	/**
@@ -79,12 +89,6 @@ public class SchedulerTest
 	@Test
 	public void singleProviderStressTest() throws InterruptedException
 	{
-		taskLog = new CopyOnWriteArrayList<>();
-		Scheduler scheduler = new Scheduler();
-
-		ExecutorService executorService = Executors.newCachedThreadPool();
-		executorService.submit(scheduler);
-
 		// Количество заданий
 		final int SIZE = 1000;
 
@@ -107,11 +111,9 @@ public class SchedulerTest
 		sleep(MS_FORWARD + 1000);
 
 		scheduler.log("Assert time");
-		Assert.assertEquals(SIZE, taskLog.size());
+		assertEquals(SIZE, taskLog.size());
 
-		scheduler.stop();
-		executorService.shutdown();
-		Assert.assertTrue(executorService.awaitTermination(EXECUTOR_TERMINATION_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+		shutdown();
 	}
 
 	/**
@@ -120,12 +122,6 @@ public class SchedulerTest
 	@Test
 	public void multiProviderStressTest() throws InterruptedException, ExecutionException
 	{
-		taskLog = new CopyOnWriteArrayList<>();
-		final Scheduler scheduler = new Scheduler();
-
-		ExecutorService executorService = Executors.newCachedThreadPool();
-		executorService.submit(scheduler);
-
 		// Количество заданий от каждого поставщика
 		final int SIZE = 10000;
 
@@ -164,10 +160,8 @@ public class SchedulerTest
 		sleep(MS_FORWARD + 1000);
 
 		scheduler.log("Assert time");
-		Assert.assertEquals(SIZE * NUMBER_OF_PROVIDERS, taskLog.size());
+		assertEquals(SIZE * NUMBER_OF_PROVIDERS, taskLog.size());
 
-		scheduler.stop();
-		executorService.shutdown();
-		Assert.assertTrue(executorService.awaitTermination(EXECUTOR_TERMINATION_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+		shutdown();
 	}
 }
