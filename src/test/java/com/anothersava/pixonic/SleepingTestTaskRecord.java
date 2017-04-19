@@ -1,3 +1,7 @@
+package com.anothersava.pixonic;
+
+import com.anothersava.pixonic.TaskRecord;
+
 import java.time.LocalDateTime;
 import java.util.concurrent.CopyOnWriteArrayList;
 

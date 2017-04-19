@@ -1,4 +1,4 @@
-/*
+package com.anothersava.pixonic;/*
 *   На вход поступают пары (LocalDateTime, Callable).
 *   Нужно реализовать систему, которая будет выполнять Callable для каждого пришедшего события в указанный LocalDateTime.
 *   Задачи должны выполняться в порядке согласно значению LocalDateTime.
