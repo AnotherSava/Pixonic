@@ -1,25 +1,29 @@
 package com.anothersava.pixonic;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.*;
-
 import static java.lang.Thread.sleep;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class SchedulerTest
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+public class DispatcherTest
 {
 	// Время, которое мы даём ExecutorService на завершение своих дел
 	private static final int EXECUTOR_TERMINATION_TIMEOUT_SECONDS = 5;
 	private CopyOnWriteArrayList<Integer> taskLog;
-	private Scheduler scheduler;
+	private Dispatcher dispatcher;
 	private ExecutorService executorService;
 
 	/**
@@ -28,17 +32,17 @@ public class SchedulerTest
 	@BeforeEach
 	private void init() {
 		taskLog = new CopyOnWriteArrayList<>();
-		scheduler = new Scheduler();
+		dispatcher = new Dispatcher();
 
 		executorService = Executors.newCachedThreadPool();
-		executorService.submit(scheduler);
+		executorService.submit(dispatcher);
 	}
 
 	/**
 	 * Проверка успешного завершения работы
 	 */
 	private void shutdown() throws InterruptedException {
-		scheduler.stop();
+		dispatcher.stop();
 		executorService.shutdown();
 		assertTrue(executorService.awaitTermination(EXECUTOR_TERMINATION_TIMEOUT_SECONDS, TimeUnit.SECONDS));
 	}
@@ -50,10 +54,10 @@ public class SchedulerTest
 	public void testBasicSequence() throws InterruptedException
 	{
 		LocalDateTime time = LocalDateTime.now().plusSeconds(1);
-		scheduler.addTask(new SleepingTestTaskRecord(2000, 100, taskLog, 1));
-		scheduler.addTask(new SleepingTestTaskRecord(-1000, 100, taskLog, 2));
-		scheduler.addTask(new SleepingTestTaskRecord(time, 100, taskLog, 3));
-		scheduler.addTask(new SleepingTestTaskRecord(time, 100, taskLog, 4));
+		dispatcher.addTask(new SleepingTestTaskRecord(2000, 100, taskLog, 1));
+		dispatcher.addTask(new SleepingTestTaskRecord(-1000, 100, taskLog, 2));
+		dispatcher.addTask(new SleepingTestTaskRecord(time, 100, taskLog, 3));
+		dispatcher.addTask(new SleepingTestTaskRecord(time, 100, taskLog, 4));
 
 		sleep(3000);
 
@@ -70,12 +74,12 @@ public class SchedulerTest
 	{
 		LocalDateTime time = LocalDateTime.now().plusSeconds(3);
 
-		scheduler.addTask(new SleepingTestTaskRecord(500, 2000, taskLog, 1));
+		dispatcher.addTask(new SleepingTestTaskRecord(500, 2000, taskLog, 1));
 		sleep(1000);
-		scheduler.addTask(new SleepingTestTaskRecord(time, 1000, taskLog, 3));
-		scheduler.addTask(new SleepingTestTaskRecord(-1000, 1000, taskLog, 2));
+		dispatcher.addTask(new SleepingTestTaskRecord(time, 1000, taskLog, 3));
+		dispatcher.addTask(new SleepingTestTaskRecord(-1000, 1000, taskLog, 2));
 		sleep(1000);
-		scheduler.addTask(new SleepingTestTaskRecord(time, 1000, taskLog, 4));
+		dispatcher.addTask(new SleepingTestTaskRecord(time, 1000, taskLog, 4));
 
 
 		sleep(6000);
@@ -106,13 +110,13 @@ public class SchedulerTest
 		Random random = new Random();
 		for (int i = 0; i < SIZE; i++)
 		{
-			scheduler.addTask(new SleepingTestTaskRecord(random.nextInt(MS_FORWARD + MS_BACKWARDS) - MS_BACKWARDS, 0, taskLog, i));
+			dispatcher.addTask(new SleepingTestTaskRecord(random.nextInt(MS_FORWARD + MS_BACKWARDS) - MS_BACKWARDS, 0, taskLog, i));
 			sleep(random.nextInt(DELAY));
 		}
 
 		sleep(MS_FORWARD + 1000);
 
-		scheduler.log("Assert time");
+		dispatcher.log("Assert time");
 		assertEquals(SIZE, taskLog.size());
 
 		shutdown();
@@ -148,7 +152,7 @@ public class SchedulerTest
 			{
 				for (int i = 0; i < SIZE; i++)
 				{
-					scheduler.addTask(new SleepingTestTaskRecord(random.nextInt(MS_FORWARD + MS_BACKWARDS) - MS_BACKWARDS, 0, taskLog, i + localIndex * SIZE));
+					dispatcher.addTask(new SleepingTestTaskRecord(random.nextInt(MS_FORWARD + MS_BACKWARDS) - MS_BACKWARDS, 0, taskLog, i + localIndex * SIZE));
 					sleep(random.nextInt(DELAY));
 				}
 				return null;
@@ -161,7 +165,7 @@ public class SchedulerTest
 
 		sleep(MS_FORWARD + 1000);
 
-		scheduler.log("Assert time");
+		dispatcher.log("Assert time");
 		assertEquals(SIZE * NUMBER_OF_PROVIDERS, taskLog.size());
 
 		shutdown();

@@ -1,4 +1,14 @@
-package com.anothersava.pixonic;/*
+package com.anothersava.pixonic;
+
+import static java.lang.Thread.sleep;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+/*
 *   На вход поступают пары (LocalDateTime, Callable).
 *   Нужно реализовать систему, которая будет выполнять Callable для каждого пришедшего события в указанный LocalDateTime.
 *   Задачи должны выполняться в порядке согласно значению LocalDateTime.
@@ -8,19 +18,11 @@ package com.anothersava.pixonic;/*
 *   Задачи могут приходить в произвольном порядке и из разных потоков.
 */
 
-import java.time.LocalDateTime;
-import java.util.Optional;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import static java.lang.Thread.sleep;
-
-
 /**
- * По формулировке не очень понятно, требуется ли выполнять задачи в одном потоке или в асинхронно в разных,
+ * По формулировке не очень понятно, требуется ли выполнять задачи в одном потоке или асинхронно в разных,
  * но поскольку упоминается перегрузка системы, видимо, предполагается, что в одном.
  */
-public class Scheduler implements Callable<Object>
+public class Dispatcher implements Callable<Object>
 {
 	// Пауза между обращениями к пустой очереди заданий.
 	// Если начинать выполнение задания требуется с точностью до миллисекунды, можно поставить 0
@@ -32,7 +34,7 @@ public class Scheduler implements Callable<Object>
 	// Признак того, что пора заканчивать работу, можно установить извне
 	private AtomicBoolean stop;
 
-	public Scheduler()
+	public Dispatcher()
 	{
 		tasksQueue = new CopyOnWriteArrayList<>();
 		stop = new AtomicBoolean(true);
